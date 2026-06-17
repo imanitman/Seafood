@@ -6,18 +6,14 @@ from sqlalchemy.orm import Session
 from Core.database import get_db
 from Models.Product import Product
 from schemas.ProductSchema import ProductSchema
-
-router = APIRouter(prefix="/products", tags=["products"])
-
-
 from typing import Optional
-
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy import asc, desc
 from sqlalchemy.orm import Session
-
 from Core.database import get_db
 from Models.Product import Product
+
+router = APIRouter(prefix="/products", tags=["products"])
 
 router = APIRouter(
     prefix="/products",
@@ -188,3 +184,13 @@ def update_product(
     db.refresh(product)
 
     return product
+
+
+@router.get("/{category_id}/products")
+def get_products_by_category(
+    category_id: int,
+    db: Session = Depends(get_db)
+):
+    return db.query(Product)\
+        .filter(Product.category_id == category_id)\
+        .all()

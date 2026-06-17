@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from Core.database import get_db
+from Core.security import require_roles
 
 from Models.Order import Order
 from Models.OrderItem import OrderItem
@@ -152,7 +153,9 @@ def get_all_orders(
 def update_status(
     order_id: int,
     status: str,
-    db: Session = Depends(get_db)
+    current_user = Depends(require_roles),
+    db: Session = Depends(get_db),
+
 ):
     order = (
         db.query(Order)
