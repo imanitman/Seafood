@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
 from Core.database import get_db
+from Core.security import require_roles
 from Models.Product import Product
 from schemas.ProductSchema import ProductSchema
 from typing import Optional
@@ -113,7 +114,8 @@ def get_product(
 @router.delete("/{product_id}")
 def delete_product(
     product_id: int,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user = Depends(require_roles("ADMIN"))
 ):
     product = (
         db.query(Product)
@@ -139,7 +141,8 @@ def delete_product(
 @router.post("/")
 def create_product(
     request: ProductSchema,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user = Depends(require_roles("ADMIN"))
 ):
     product = Product(
         name=request.name,
@@ -160,6 +163,7 @@ def create_product(
 def update_product(
     product_id: int,
     request: ProductSchema,
+    current_user = Depends(require_roles("ADMIN")),
     db: Session = Depends(get_db)
 ):
     product = (

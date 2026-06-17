@@ -153,7 +153,7 @@ def get_all_orders(
 def update_status(
     order_id: int,
     status: str,
-    current_user = Depends(require_roles),
+    current_user = Depends(require_roles("ADMIN")),
     db: Session = Depends(get_db),
 
 ):

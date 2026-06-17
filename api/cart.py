@@ -17,10 +17,8 @@ def add_to_cart(
     current_user=Depends(get_current_user)
 ):
     product = db.query(Product).filter(Product.id == product_id).first()
-
     if not product:
         raise HTTPException(status_code=404, detail="Product not found")
-
     # check nếu đã có trong cart
     cart_item = db.query(CartItem).filter(
         CartItem.user_id == current_user["user_id"],
@@ -36,9 +34,7 @@ def add_to_cart(
             quantity=quantity
         )
         db.add(cart_item)
-
     db.commit()
-
     return {"message": "added to cart"}
 
 @router.get("/")
