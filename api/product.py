@@ -1,7 +1,19 @@
 from fastapi import HTTPException
-import os
-import uuid
+import cloudinary
+import cloudinary.uploader
 from fastapi import APIRouter, UploadFile, File, Depends
+from Core.config import (
+    CLOUDINARY_CLOUD_NAME,
+    CLOUDINARY_API_KEY,
+    CLOUDINARY_API_SECRET,
+)
+
+cloudinary.config(
+    cloud_name=CLOUDINARY_CLOUD_NAME,
+    api_key=CLOUDINARY_API_KEY,
+    api_secret=CLOUDINARY_API_SECRET,
+    secure=True,
+)
 
 from Core.security import require_roles
 from schemas.ProductSchema import ProductSchema
@@ -221,38 +233,20 @@ def get_products_by_category(
         .all()
 
 
-UPLOAD_DIR = "uploads"
-
-os.makedirs(
-    UPLOAD_DIR,
-    exist_ok=True
-)
-
-
 @router.post("/upload")
 async def upload_image(
     file: UploadFile = File(...),
     current_user=Depends(require_roles("ADMIN"))
 ):
-    # tạo tên file unique
-    ext = file.filename.split(".")[-1]
-
-    filename = (
-        f"{uuid.uuid4()}.{ext}"
+    contents = await file.read()
+    result = cloudinary.uploader.upload(
+        contents,
+        folder="products",
+        resource_type="image",
     )
-
-    file_path = os.path.join(
-        UPLOAD_DIR,
-        filename
-    )
-
-    # lưu file
-    with open(file_path, "wb") as buffer:
-        buffer.write(
-            await file.read()
-        )
-
+    url = result["secure_url"]
+    filename = result["public_id"].split("/")[-1]
     return {
         "filename": filename,
-        "url": f"/uploads/{filename}"
+        "url": url,
     }

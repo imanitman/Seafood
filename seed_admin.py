@@ -5,25 +5,34 @@ from Models.User import User
 def create_admin():
     db = SessionLocal()
 
-    # check đã có admin chưa
-    admin = db.query(User).filter(User.role == "ADMIN").first()
+    try:
+        print("START SEED")
 
-    if admin:
-        print("Admin already exists")
-        return
+        admin = db.query(User).filter(User.username == "admin").first()
 
-    new_admin = User(
-        username="admin",
-        email="admin@gmail.com",
-        password=hash_password("123456"),
-        role="ADMIN"
-    )
+        if admin:
+            print("Admin already exists")
+            return
 
-    db.add(new_admin)
-    db.commit()
-    db.close()
+        new_admin = User(
+            username="admin",
+            email="admin@gmail.com",
+            password=hash_password("123456"),  # 👈 dùng hàm của bạn
+            role="ADMIN"
+        )
 
-    print("Admin created!")
+        db.add(new_admin)
+        db.commit()
+
+        print("Admin created!")
+
+    except Exception as e:
+        db.rollback()
+        print("ERROR:", e)
+
+    finally:
+        db.close()
+
 
 if __name__ == "__main__":
     create_admin()

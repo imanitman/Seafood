@@ -46,8 +46,8 @@ def login(data: LoginRequest, response: Response, db: Session = Depends(get_db))
         value=token,
         httponly=True,
         max_age=3600,
-        samesite="lax",
-        secure=False,
+        samesite="none",
+        secure=True,
     )
     return {
         "user_id": user.id,
@@ -59,7 +59,7 @@ def login(data: LoginRequest, response: Response, db: Session = Depends(get_db))
 
 @router.post("/logout")
 def logout(response: Response):
-    response.delete_cookie(key="access_token", samesite="lax")
+    response.delete_cookie(key="access_token", samesite="none", secure=True)
     return {"message": "logged out"}
 
 

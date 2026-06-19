@@ -1,9 +1,10 @@
+import os
+
 from fastapi import FastAPI, APIRouter
 from sqlalchemy import text
 
 from api import auth, product, order, category, cart
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.staticfiles import StaticFiles
 from Models.Base import Base
 from Core.database import engine
 import Models
@@ -24,16 +25,14 @@ app.include_router(order.router)
 app.include_router(category.router)
 app.include_router(cart.router)
 
-app.mount(
-    "/uploads",
-    StaticFiles(directory="uploads"),
-    name="uploads"
-)
+_origins = ["http://localhost:3000"]
+_frontend_url = os.getenv("FRONTEND_URL")
+if _frontend_url:
+    _origins.append(_frontend_url)
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:3000"
-    ],
+    allow_origins=_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
