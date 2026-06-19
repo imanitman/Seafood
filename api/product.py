@@ -1,20 +1,18 @@
-from http.client import HTTPException
+from fastapi import HTTPException
+import os
+import uuid
+from fastapi import APIRouter, UploadFile, File, Depends
 
-from fastapi import APIRouter, Depends
-from sqlalchemy.orm import Session
-
-from Core.database import get_db
 from Core.security import require_roles
-from Models.Product import Product
 from schemas.ProductSchema import ProductSchema
 from typing import Optional
 from fastapi import APIRouter, Depends, Query
-from sqlalchemy import asc, desc
+from sqlalchemy import asc, desc, func, or_
 from sqlalchemy.orm import Session
 from Core.database import get_db
 from Models.Product import Product
+from Models.OrderItem import OrderItem
 
-router = APIRouter(prefix="/products", tags=["products"])
 
 router = APIRouter(
     prefix="/products",
@@ -37,9 +35,14 @@ def get_products(
 
     # Search
     if search:
-        query = query.filter(
-            Product.name.ilike(f"%{search}%")
-        )
+        for word in search.strip().split():
+            pattern = f"%{word}%"
+            query = query.filter(
+                or_(
+                    func.unaccent(Product.name).ilike(func.unaccent(pattern)),
+                    func.unaccent(Product.description).ilike(func.unaccent(pattern))
+                )
+            )
 
     # Filter category
     if category_id:
@@ -89,6 +92,22 @@ def get_products(
         "total": total,
         "items": products
     }
+
+@router.get("/bestsellers")
+def get_bestsellers(
+    limit: int = 8,
+    db: Session = Depends(get_db)
+):
+    results = (
+        db.query(Product, func.sum(OrderItem.quantity).label("total_sold"))
+        .join(OrderItem, OrderItem.product_id == Product.id)
+        .group_by(Product.id)
+        .order_by(desc(func.sum(OrderItem.quantity)))
+        .limit(limit)
+        .all()
+    )
+    return [r[0] for r in results]
+
 
 #lay product theo id
 @router.get("/{product_id}")
@@ -149,7 +168,8 @@ def create_product(
         description=request.description,
         price=request.price,
         stock=request.stock,
-        category_id=request.category_id
+        category_id=request.category_id,
+        image_url=request.image_url
     )
 
     db.add(product)
@@ -183,6 +203,7 @@ def update_product(
     product.price = request.price
     product.stock = request.stock
     product.category_id = request.category_id
+    product.image_url = request.image_url
 
     db.commit()
     db.refresh(product)
@@ -198,3 +219,40 @@ def get_products_by_category(
     return db.query(Product)\
         .filter(Product.category_id == category_id)\
         .all()
+
+
+UPLOAD_DIR = "uploads"
+
+os.makedirs(
+    UPLOAD_DIR,
+    exist_ok=True
+)
+
+
+@router.post("/upload")
+async def upload_image(
+    file: UploadFile = File(...),
+    current_user=Depends(require_roles("ADMIN"))
+):
+    # tạo tên file unique
+    ext = file.filename.split(".")[-1]
+
+    filename = (
+        f"{uuid.uuid4()}.{ext}"
+    )
+
+    file_path = os.path.join(
+        UPLOAD_DIR,
+        filename
+    )
+
+    # lưu file
+    with open(file_path, "wb") as buffer:
+        buffer.write(
+            await file.read()
+        )
+
+    return {
+        "filename": filename,
+        "url": f"/uploads/{filename}"
+    }

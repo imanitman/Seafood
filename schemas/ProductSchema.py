@@ -1,4 +1,5 @@
 from pydantic import BaseModel
+from typing import Optional
 
 
 class ProductSchema(BaseModel):
@@ -7,3 +8,4 @@ class ProductSchema(BaseModel):
     price: float
     stock: int
     category_id: int
+    image_url: Optional[str] = None

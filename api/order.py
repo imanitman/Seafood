@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from Core.database import get_db
-from Core.security import require_roles
+from Core.security import require_roles, get_current_user
 
 from Models.Order import Order
 from Models.OrderItem import OrderItem
@@ -15,9 +15,10 @@ router = APIRouter(
 )
 @router.post("/")
 def create_order(
-    user_id: int,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user)
 ):
+    user_id = current_user["user_id"]
     cart_items = (
         db.query(CartItem)
         .filter(CartItem.user_id == user_id)
@@ -79,9 +80,10 @@ def create_order(
 
 @router.get("/")
 def get_orders(
-    user_id: int,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user)
 ):
+    user_id = current_user["user_id"]
     return (
         db.query(Order)
         .filter(Order.user_id == user_id)

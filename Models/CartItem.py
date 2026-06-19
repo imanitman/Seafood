@@ -1,4 +1,5 @@
 from sqlalchemy import Column, Integer, ForeignKey
+from sqlalchemy.orm import relationship
 from Models.Base import Base
 
 class CartItem(Base):
@@ -8,3 +9,5 @@ class CartItem(Base):
     user_id = Column(Integer, ForeignKey("users.id"))
     product_id = Column(Integer, ForeignKey("products.id"))
     quantity = Column(Integer)
+
+    product = relationship("Product")
