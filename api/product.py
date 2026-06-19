@@ -239,11 +239,14 @@ async def upload_image(
     current_user=Depends(require_roles("ADMIN"))
 ):
     contents = await file.read()
-    result = cloudinary.uploader.upload(
-        contents,
-        folder="products",
-        resource_type="image",
-    )
+    try:
+        result = cloudinary.uploader.upload(
+            contents,
+            folder="products",
+            resource_type="image",
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Cloudinary upload failed: {str(e)}")
     url = result["secure_url"]
     filename = result["public_id"].split("/")[-1]
     return {
