@@ -238,13 +238,14 @@ def fix_image_urls(
     db: Session = Depends(get_db),
     current_user=Depends(require_roles("ADMIN"))
 ):
+    default_url = "https://res.cloudinary.com/diblzcbla/image/upload/products/default.jpg"
     bad_prefix = "http://localhost:8000"
     products = db.query(Product).filter(
         Product.image_url.like(f"{bad_prefix}%")
     ).all()
     fixed = []
     for p in products:
-        p.image_url = p.image_url[len(bad_prefix):]
+        p.image_url = default_url
         fixed.append({"id": p.id, "image_url": p.image_url})
     db.commit()
     return {"fixed": len(fixed), "items": fixed}
