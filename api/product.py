@@ -110,9 +110,11 @@ def get_bestsellers(
     limit: int = 8,
     db: Session = Depends(get_db)
 ):
+    from Models.ProductDetail import ProductDetail
     results = (
         db.query(Product, func.sum(OrderItem.quantity).label("total_sold"))
-        .join(OrderItem, OrderItem.product_id == Product.id)
+        .join(ProductDetail, ProductDetail.product_id == Product.id)
+        .join(OrderItem, OrderItem.product_detail_id == ProductDetail.id)
         .group_by(Product.id)
         .order_by(desc(func.sum(OrderItem.quantity)))
         .limit(limit)
@@ -127,8 +129,10 @@ def get_product(
     product_id: int,
     db: Session = Depends(get_db)
 ):
+    from sqlalchemy.orm import joinedload
     product = (
         db.query(Product)
+        .options(joinedload(Product.product_details), joinedload(Product.supplier))
         .filter(Product.id == product_id)
         .first()
     )
@@ -181,6 +185,7 @@ def create_product(
         price=request.price,
         stock=request.stock,
         category_id=request.category_id,
+        supplier_id=request.supplier_id,
         image_url=request.image_url
     )
 
@@ -215,6 +220,7 @@ def update_product(
     product.price = request.price
     product.stock = request.stock
     product.category_id = request.category_id
+    product.supplier_id = request.supplier_id
     product.image_url = request.image_url
 
     db.commit()

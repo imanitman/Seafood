@@ -7,7 +7,10 @@ from Core.security import require_roles, get_current_user
 from Models.Order import Order
 from Models.OrderItem import OrderItem
 from Models.CartItem import CartItem
-from Models.Product import Product
+from Models.ProductDetail import ProductDetail
+from Models.Payment import Payment
+from Models.Shipment import Shipment
+from Models.Location import Location
 
 router = APIRouter(
     prefix="/orders",
@@ -15,12 +18,20 @@ router = APIRouter(
 )
 @router.post("/")
 def create_order(
+    location_id: int,
     db: Session = Depends(get_db),
     current_user=Depends(get_current_user)
 ):
     user_id = current_user["user_id"]
+
+    location = db.query(Location).filter(Location.id == location_id, Location.user_id == user_id).first()
+    if not location:
+        raise HTTPException(status_code=404, detail="Location not found")
+
+    from sqlalchemy.orm import joinedload
     cart_items = (
         db.query(CartItem)
+        .options(joinedload(CartItem.product_detail))
         .filter(CartItem.user_id == user_id)
         .all()
     )
@@ -34,12 +45,14 @@ def create_order(
     total_price = 0
 
     for item in cart_items:
+        price_to_use = item.product_detail.sales_price if item.product_detail.sales_price else item.product_detail.price
         total_price += (
-            item.product.price * item.quantity
+            price_to_use * item.quantity
         )
 
     order = Order(
         user_id=user_id,
+        location_id=location_id,
         total_price=total_price,
         status="PENDING"
     )
@@ -48,25 +61,43 @@ def create_order(
     db.commit()
     db.refresh(order)
 
+    payment = Payment(
+        order_id=order.id,
+        payment_method="CASH",
+        amount=total_price,
+        status="PENDING"
+    )
+    db.add(payment)
+
+    shipment = Shipment(
+        order_id=order.id,
+        shipper="",
+        status="PENDING",
+        position=""
+    )
+    db.add(shipment)
+    db.commit()
+
     for item in cart_items:
+        price_to_use = item.product_detail.sales_price if item.product_detail.sales_price else item.product_detail.price
         order_item = OrderItem(
             order_id=order.id,
-            product_id=item.product_id,
+            product_detail_id=item.product_detail_id,
             quantity=item.quantity,
-            price=item.product.price
+            price=price_to_use
         )
 
         db.add(order_item)
 
-        product = (
-            db.query(Product)
+        product_detail = (
+            db.query(ProductDetail)
             .filter(
-                Product.id == item.product_id
+                ProductDetail.id == item.product_detail_id
             )
             .first()
         )
 
-        product.stock -= item.quantity
+        product_detail.quantity -= item.quantity
 
     db.commit()
 
@@ -84,8 +115,10 @@ def get_orders(
     current_user=Depends(get_current_user)
 ):
     user_id = current_user["user_id"]
+    from sqlalchemy.orm import joinedload
     return (
         db.query(Order)
+        .options(joinedload(Order.payment), joinedload(Order.shipment))
         .filter(Order.user_id == user_id)
         .all()
     )
@@ -95,8 +128,10 @@ def get_order_detail(
     order_id: int,
     db: Session = Depends(get_db)
 ):
+    from sqlalchemy.orm import joinedload
     order = (
         db.query(Order)
+        .options(joinedload(Order.payment), joinedload(Order.shipment))
         .filter(Order.id == order_id)
         .first()
     )
@@ -109,6 +144,7 @@ def get_order_detail(
 
     items = (
         db.query(OrderItem)
+        .options(joinedload(OrderItem.product_detail))
         .filter(
             OrderItem.order_id == order_id
         )
@@ -149,7 +185,8 @@ def cancel_order(
 def get_all_orders(
     db: Session = Depends(get_db)
 ):
-    return db.query(Order).all()
+    from sqlalchemy.orm import joinedload
+    return db.query(Order).options(joinedload(Order.payment), joinedload(Order.shipment)).all()
 
 @router.put("/{order_id}/status")
 def update_status(

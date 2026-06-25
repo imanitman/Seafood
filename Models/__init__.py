@@ -4,3 +4,11 @@ from .Product import Product
 from .Order import Order
 from .OrderItem import OrderItem
 from .CartItem import CartItem
+from .ImageProduct import ImageProduct
+from .Location import Location
+from .LoginMethod import LoginMethod
+from .Payment import Payment
+from .ProductDetail import ProductDetail
+from .Shipment import Shipment
+from .Supplier import Supplier
+from .Unit import Unit

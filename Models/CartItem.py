@@ -7,7 +7,8 @@ class CartItem(Base):
 
     id = Column(Integer, primary_key=True)
     user_id = Column(Integer, ForeignKey("users.id"))
-    product_id = Column(Integer, ForeignKey("products.id"))
+    product_detail_id = Column(Integer, ForeignKey("product_details.id"))
     quantity = Column(Integer)
 
-    product = relationship("Product")
+    user = relationship("User", back_populates="cart_items")
+    product_detail = relationship("ProductDetail", back_populates="cart_items")
