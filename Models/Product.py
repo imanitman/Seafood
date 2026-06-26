@@ -11,9 +11,13 @@ class Product(Base):
     price = Column(Float)
     stock = Column(Integer)
     image_url = Column(String(500))
+
     category_id = Column(Integer, ForeignKey("categories.id"))
     supplier_id = Column(Integer, ForeignKey("suppliers.id"))
-    
+    unit_id = Column(Integer, ForeignKey("units.id"))   # <-- thêm
+
     category = relationship("Category", back_populates="products")
     supplier = relationship("Supplier", back_populates="products")
+    unit = relationship("Unit", back_populates="products")   # <-- thêm
+
     product_details = relationship("ProductDetail", back_populates="product")

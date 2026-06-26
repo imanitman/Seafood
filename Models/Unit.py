@@ -7,5 +7,7 @@ class Unit(Base):
 
     id = Column(Integer, primary_key=True)
     name = Column(String(50), nullable=False, unique=True)
-    
+
+    products = relationship("Product", back_populates="unit")   # <-- thêm
+
     product_details = relationship("ProductDetail", back_populates="unit")

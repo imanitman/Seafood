@@ -14,7 +14,7 @@ cloudinary.config(
     api_secret=CLOUDINARY_API_SECRET,
     secure=True,
 )
-
+from sqlalchemy.orm import joinedload
 from Core.security import require_roles
 from schemas.ProductSchema import ProductSchema
 from typing import Optional
@@ -43,7 +43,14 @@ def get_products(
     sort: Optional[str] = None,
     db: Session = Depends(get_db)
 ):
-    query = db.query(Product)
+    query = (
+        db.query(Product)
+        .options(
+            joinedload(Product.category),
+            joinedload(Product.supplier),
+            joinedload(Product.unit)
+        )
+    )
 
     # Search
     if search:
@@ -129,22 +136,25 @@ def get_product(
     product_id: int,
     db: Session = Depends(get_db)
 ):
-    from sqlalchemy.orm import joinedload
-    product = (
-        db.query(Product)
-        .options(joinedload(Product.product_details), joinedload(Product.supplier))
-        .filter(Product.id == product_id)
-        .first()
-    )
-
-    if not product:
-        raise HTTPException(
-            status_code=404,
-            detail="Product not found"
+        product = (
+            db.query(Product)
+            .options(
+                joinedload(Product.product_details),
+                joinedload(Product.category),
+                joinedload(Product.supplier),
+                joinedload(Product.unit)
+            )
+            .filter(Product.id == product_id)
+            .first()
         )
 
-    return product
+        if not product:
+            raise HTTPException(
+                status_code=404,
+                detail="Product not found"
+            )
 
+        return product
 #xoa product
 @router.delete("/{product_id}")
 def delete_product(
@@ -179,21 +189,22 @@ def create_product(
     db: Session = Depends(get_db),
     current_user = Depends(require_roles("ADMIN"))
 ):
-    product = Product(
-        name=request.name,
-        description=request.description,
-        price=request.price,
-        stock=request.stock,
-        category_id=request.category_id,
-        supplier_id=request.supplier_id,
-        image_url=request.image_url
-    )
+        product = Product(
+            name=request.name,
+            description=request.description,
+            price=request.price,
+            stock=request.stock,
+            category_id=request.category_id,
+            supplier_id=request.supplier_id,
+            unit_id=request.unit_id,
+            image_url=request.image_url
+        )
 
-    db.add(product)
-    db.commit()
-    db.refresh(product)
+        db.add(product)
+        db.commit()
+        db.refresh(product)
 
-    return product
+        return product
 
 #cap nhat product
 @router.put("/{product_id}")
@@ -256,6 +267,38 @@ def fix_image_urls(
     db.commit()
     return {"fixed": len(fixed), "items": fixed}
 
+@router.put("/{product_id}")
+def update_product(
+    product_id: int,
+    request: ProductSchema,
+    current_user=Depends(require_roles("ADMIN")),
+    db: Session = Depends(get_db)
+):
+    product = (
+        db.query(Product)
+        .filter(Product.id == product_id)
+        .first()
+    )
+
+    if not product:
+        raise HTTPException(
+            status_code=404,
+            detail="Product not found"
+        )
+
+    product.name = request.name
+    product.description = request.description
+    product.price = request.price
+    product.stock = request.stock
+    product.category_id = request.category_id
+    product.supplier_id = request.supplier_id
+    product.unit_id = request.unit_id
+    product.image_url = request.image_url
+
+    db.commit()
+    db.refresh(product)
+
+    return product
 
 @router.post("/upload")
 async def upload_image(
