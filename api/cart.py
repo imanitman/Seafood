@@ -11,30 +11,41 @@ router = APIRouter(prefix="/cart", tags=["cart"])
 
 @router.post("/add")
 def add_to_cart(
-    product_detail_id: int,
+    product_id: int,
     quantity: int = 1,
     db: Session = Depends(get_db),
     current_user=Depends(get_current_user)
 ):
-    product_detail = db.query(ProductDetail).filter(ProductDetail.id == product_detail_id).first()
+    product_detail = (
+        db.query(ProductDetail)
+        .filter(ProductDetail.product_id == product_id)
+        .first()
+    )
+
     if not product_detail:
         raise HTTPException(status_code=404, detail="Product Detail not found")
-    # check nếu đã có trong cart
-    cart_item = db.query(CartItem).filter(
-        CartItem.user_id == current_user["user_id"],
-        CartItem.product_detail_id == product_detail_id
-    ).first()
+
+    cart_item = (
+        db.query(CartItem)
+        .filter(
+            CartItem.user_id == current_user["user_id"],
+            CartItem.product_detail_id == product_detail.id
+        )
+        .first()
+    )
 
     if cart_item:
         cart_item.quantity += quantity
     else:
         cart_item = CartItem(
             user_id=current_user["user_id"],
-            product_detail_id=product_detail_id,
+            product_detail_id=product_detail.id,
             quantity=quantity
         )
         db.add(cart_item)
+
     db.commit()
+
     return {"message": "added to cart"}
 
 @router.get("/")
@@ -51,14 +62,21 @@ def get_cart(
 
 @router.put("/update")
 def update_quantity(
-    product_detail_id: int,
+    product_id: int,
     quantity: int,
     db: Session = Depends(get_db),
     current_user=Depends(get_current_user)
 ):
+    product_detail = db.query(ProductDetail).filter(
+        ProductDetail.product_id == product_id
+    ).first()
+
+    if not product_detail:
+        raise HTTPException(status_code=404, detail="Product Detail not found")
+
     cart_item = db.query(CartItem).filter(
         CartItem.user_id == current_user["user_id"],
-        CartItem.product_detail_id == product_detail_id
+        CartItem.product_detail_id == product_detail.id
     ).first()
 
     if not cart_item:
@@ -75,13 +93,20 @@ def update_quantity(
 
 @router.delete("/remove")
 def remove_from_cart(
-    product_detail_id: int,
+    product_id: int,
     db: Session = Depends(get_db),
     current_user=Depends(get_current_user)
 ):
+    product_detail = db.query(ProductDetail).filter(
+        ProductDetail.product_id == product_id
+    ).first()
+
+    if not product_detail:
+        raise HTTPException(status_code=404, detail="Product Detail not found")
+
     cart_item = db.query(CartItem).filter(
         CartItem.user_id == current_user["user_id"],
-        CartItem.product_detail_id == product_detail_id
+        CartItem.product_detail_id == product_detail.id
     ).first()
 
     if not cart_item:
