@@ -19,5 +19,8 @@ class Product(Base):
     category = relationship("Category", back_populates="products")
     supplier = relationship("Supplier", back_populates="products")
     unit = relationship("Unit", back_populates="products")   # <-- thêm
-
+    cart_items = relationship(
+        "CartItem",
+        back_populates="product"
+    )
     product_details = relationship("ProductDetail", back_populates="product")
