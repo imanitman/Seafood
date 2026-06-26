@@ -68,6 +68,83 @@ def run_migration():
         print("[OK] orders.location_id")
 
     # ──────────────────────────────────────────────
+    # 5. products.supplier_id
+    # ──────────────────────────────────────────────
+    if table_exists(inspector, 'products') and not column_exists(inspector, 'products', 'supplier_id'):
+        migrations.append(
+            "ALTER TABLE products ADD COLUMN supplier_id INTEGER REFERENCES suppliers(id);"
+        )
+        print("[PENDING] products.supplier_id")
+    else:
+        print("[OK] products.supplier_id")
+
+    # ──────────────────────────────────────────────
+    # 6. products.stock
+    # ──────────────────────────────────────────────
+    if table_exists(inspector, 'products') and not column_exists(inspector, 'products', 'stock'):
+        migrations.append(
+            "ALTER TABLE products ADD COLUMN stock INTEGER;"
+        )
+        print("[PENDING] products.stock")
+    else:
+        print("[OK] products.stock")
+
+    # ──────────────────────────────────────────────
+    # 7. products.image_url
+    # ──────────────────────────────────────────────
+    if table_exists(inspector, 'products') and not column_exists(inspector, 'products', 'image_url'):
+        migrations.append(
+            "ALTER TABLE products ADD COLUMN image_url VARCHAR(500);"
+        )
+        print("[PENDING] products.image_url")
+    else:
+        print("[OK] products.image_url")
+
+    # ──────────────────────────────────────────────
+    # 8. product_details.unit_id
+    # ──────────────────────────────────────────────
+    if table_exists(inspector, 'product_details') and not column_exists(inspector, 'product_details', 'unit_id'):
+        migrations.append(
+            "ALTER TABLE product_details ADD COLUMN unit_id INTEGER REFERENCES units(id);"
+        )
+        print("[PENDING] product_details.unit_id")
+    else:
+        print("[OK] product_details.unit_id")
+
+    # ──────────────────────────────────────────────
+    # 9. product_details.sales_price
+    # ──────────────────────────────────────────────
+    if table_exists(inspector, 'product_details') and not column_exists(inspector, 'product_details', 'sales_price'):
+        migrations.append(
+            "ALTER TABLE product_details ADD COLUMN sales_price INTEGER;"
+        )
+        print("[PENDING] product_details.sales_price")
+    else:
+        print("[OK] product_details.sales_price")
+
+    # ──────────────────────────────────────────────
+    # 10. product_details.quantity
+    # ──────────────────────────────────────────────
+    if table_exists(inspector, 'product_details') and not column_exists(inspector, 'product_details', 'quantity'):
+        migrations.append(
+            "ALTER TABLE product_details ADD COLUMN quantity INTEGER;"
+        )
+        print("[PENDING] product_details.quantity")
+    else:
+        print("[OK] product_details.quantity")
+
+    # ──────────────────────────────────────────────
+    # 11. users.login_method_id
+    # ──────────────────────────────────────────────
+    if table_exists(inspector, 'users') and not column_exists(inspector, 'users', 'login_method_id'):
+        migrations.append(
+            "ALTER TABLE users ADD COLUMN login_method_id INTEGER REFERENCES login_methods(id);"
+        )
+        print("[PENDING] users.login_method_id")
+    else:
+        print("[OK] users.login_method_id")
+
+    # ──────────────────────────────────────────────
     # 5. Tạo các ENUM types nếu chưa có
     # ──────────────────────────────────────────────
     enum_migrations = [
